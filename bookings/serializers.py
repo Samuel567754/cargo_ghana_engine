@@ -108,7 +108,23 @@ class BookingDetailSerializer(serializers.ModelSerializer):
 
 
 
-
+class BookingTrackingSerializer(serializers.ModelSerializer):
+    """
+    Exposed to the public for booking lookup by reference_code.
+    """
+    class Meta:
+        model = Booking
+        fields = [
+            'reference_code',
+            'box_type',
+            'weight_kg',
+            'pickup_address',
+            'pickup_date',
+            'pickup_slot',
+            'cost',        
+            'created_at',
+        ]
+        read_only_fields = fields
 
 
 

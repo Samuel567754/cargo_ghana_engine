@@ -1,0 +1,32 @@
+{# templates/admin/dashboard.html #}
+{% block dashboard %}
+  <div class="grid grid-cols-3 gap-4 mb-6">
+    … your three cards …
+  </div>
+
+  <h2 class="text-2xl font-semibold mb-4">Top 5 Customers (Today)</h2>
+  <div class="overflow-auto mb-6">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead>
+        <tr>
+          <th class="px-4 py-2">Customer</th>
+          <th class="px-4 py-2">Bookings</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for cust in customer_stats %}
+        <tr>
+          <td class="px-4 py-2">{{ cust.user__username }}</td>
+          <td class="px-4 py-2">{{ cust.bookings }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="2" class="px-4 py-2 text-center">No bookings today</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {{ block.super }}
+{% endblock %}

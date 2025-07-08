@@ -1,4 +1,5 @@
 # bookings/views.py
+from rest_framework import generics
 from decimal import Decimal
 from django.core import management
 from rest_framework import viewsets, status
@@ -14,6 +15,7 @@ from .serializers import (
     ContainerProgressSerializer,
     BookingCreateSerializer,
     BookingDetailSerializer,
+    BookingTrackingSerializer,
 )
 from .tasks import send_booking_notifications
 
@@ -124,7 +126,15 @@ def check_dispatch_api(request):
     return Response({'output': output}, status=status.HTTP_200_OK)
 
 
-
+class BookingTrackingView(generics.RetrieveAPIView):
+    """
+    GET /api/track/{reference_code}/
+    Publicly returns booking details for that code.
+    """
+    queryset = Booking.objects.all()
+    serializer_class = BookingTrackingSerializer
+    lookup_field = 'reference_code'
+    permission_classes = [AllowAny]
 
 
 

@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import BoxTypeViewSet, BookingViewSet, ContainerProgressView, VolumeCalcAPIView, mark_ready_batches_api, check_dispatch_api
+from .views import BoxTypeViewSet, BookingViewSet, ContainerProgressView, VolumeCalcAPIView, mark_ready_batches_api, check_dispatch_api,    BookingTrackingView    
 
 router = DefaultRouter()
 router.register(r'boxes', BoxTypeViewSet, basename='boxes')
@@ -16,4 +16,5 @@ urlpatterns = [
         check_dispatch_api,
         name='admin-check-dispatch'
     ),
+    path('track/<str:reference_code>/', BookingTrackingView.as_view(), name='booking-track'),
 ]

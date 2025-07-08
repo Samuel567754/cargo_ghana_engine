@@ -3,6 +3,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
 from datetime import timedelta
+from celery.schedules import crontab
+
 
 
 # ─── Load environment variables ────────────────────────────
@@ -15,7 +17,11 @@ DEBUG = os.getenv('DEBUG', '1') == '1'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost').split(',')
 
 # ─── Installed Apps ─────────────────────────────────────────
-INSTALLED_APPS = [
+INSTALLED_APPS = [  
+    "unfold",                   # required
+    "unfold.contrib.filters",   # optional — adds better filter widgets
+    "unfold.contrib.forms",     # optional — custom form elements
+    "unfold.contrib.inlines",   # optional — enhanced inlines
     # Django core
     'django.contrib.admin',
     'django.contrib.auth',
@@ -38,6 +44,22 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'bookings.apps.BookingsConfig',
 ]
+
+
+CELERY_BEAT_SCHEDULE = {
+    'milestone-check-every-hour': {
+        'task': 'bookings.tasks.check_milestones_and_notify',
+        'schedule': crontab(minute=0),
+    },
+    'dispatch-ready-check-every-hour': {
+        'task': 'bookings.tasks.notify_dispatch_ready',
+        'schedule': crontab(minute=5),
+    },
+    'container-batch-dispatch': {
+        'task': 'bookings.tasks.check_and_mark_batches',
+        'schedule': crontab(minute=10),
+    },
+}
 
 
 CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://redis:6379/0')
@@ -204,4 +226,20 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     # ...
+}
+
+
+UNFOLD = {
+    "SITE_TITLE": "CargoGhana Admin",
+    "SITE_HEADER": "CargoGhana Dashboard",
+    "DARK_MODE": True,
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": False,
+    },
+    # Add dashboard callback once ready:
+    # "DASHBOARD_CALLBACK": "bookings.admin.dashboard_callback",
+     # ← point Unfold at our custom dashboard function
+    
+    "DASHBOARD_CALLBACK": "bookings.admin.dashboard_callback",
 }

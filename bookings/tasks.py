@@ -6,7 +6,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from twilio.rest import Client as TwilioClient
 
-from .models import Booking, NotificationLog
+from .models import Booking, NotificationLog , ContainerBatch
 
 logger = get_task_logger(__name__)
 
@@ -205,7 +205,30 @@ def notify_dispatch_ready():
 
 
 
+@shared_task
+def check_and_mark_batches():
+    """
+    1) Checks total booked volume.
+    2) Ensures there's a single 'pending' ContainerBatch.
+    3) If capacity reached, marks batch ready + fires notify_dispatch_ready.
+    """
+    total = Booking.total_booked_volume()
+    # get or create the current pending batch
+    batch, created = ContainerBatch.objects.get_or_create(
+        status='pending',
+        defaults={'filled_volume': Decimal('0.00')}
+    )
+    # update filled_volume
+    batch.filled_volume = total.quantize(Decimal('0.01'))
+    batch.save()
 
+    # if reached capacity and not already marked ready
+    if total >= CONTAINER_CAPACITY and batch.status != 'ready':
+        batch.status = 'ready'
+        batch.save()
+        logger.info(f"ContainerBatch {batch.id} marked READY at {total} m³")
+        # send the dispatch‑ready notifications
+        notify_dispatch_ready.delay()
 
 
 
