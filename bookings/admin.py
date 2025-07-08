@@ -2,7 +2,6 @@ from django.contrib import admin
 from .models import BoxType, Booking, NotificationLog, ContainerBatch
 
 
-
 @admin.register(ContainerBatch)
 class ContainerBatchAdmin(admin.ModelAdmin):
     list_display = (
@@ -35,7 +34,6 @@ class BookingAdmin(admin.ModelAdmin):
     )
     readonly_fields = ('reference_code', 'cost', 'created_at')
     search_fields = ('reference_code', 'user__username', 'pickup_address')
-
 
 
 @admin.register(NotificationLog)

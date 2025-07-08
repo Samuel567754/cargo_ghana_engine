@@ -102,6 +102,15 @@ DATABASES = {
 }
 
 
+# settings.py
+DEFAULT_FROM_EMAIL = "no-reply@cargoghana.com"
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_SID")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_TOKEN")
+TWILIO_WHATSAPP_NUMBER = os.getenv("TWILIO_FROM")            # e.g. "+1415xxxxxxx"
+ADMIN_WHATSAPP = os.getenv("ADMIN_WHATSAPP")                   # e.g. "+233xxxxxxxx"
+
+
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
