@@ -3,6 +3,9 @@ from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
+from rest_framework import status
+from .serializers import VolumeCalcSerializer
+
 
 from .models import BoxType, Booking
 from .serializers import (
@@ -33,3 +36,27 @@ class ContainerProgressView(APIView):
             'percent': min(round(percent, 2), Decimal(100))
         }
         return Response(ContainerProgressSerializer(data).data)
+
+
+
+class VolumeCalcAPIView(APIView):
+    permission_classes = [AllowAny]                  # ← allow unauthenticated
+    """
+    POST /api/volume-calc/
+    {
+        "boxes": [
+            { "type_id": 1, "quantity": 3 },
+            { "type_id": 2, "quantity": 5 }
+        ]
+    }
+    Response:
+    {
+        "total_volume": 4.56,
+        "total_cost": "1234.00"
+    }
+    """
+    def post(self, request, *args, **kwargs):
+        serializer = VolumeCalcSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = serializer.save()
+        return Response(result, status=status.HTTP_200_OK)

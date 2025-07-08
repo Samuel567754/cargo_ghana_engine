@@ -3,6 +3,9 @@ from decimal import Decimal
 from django.db import models
 from django.conf import settings
 from django.utils.crypto import get_random_string
+import logging
+
+logger = logging.getLogger(__name__)
 
 def generate_reference_code():
     import random, string
@@ -96,9 +99,13 @@ class Booking(models.Model):
                 # Import inside method to avoid circular import
                 from .tasks import send_booking_notifications
                 send_booking_notifications.delay(str(self.id))
-            except (ImportError, NameError):
-                # In test environments or if Celery isn’t configured, just skip
-                pass
+            except Exception as e:
+                # Swallow any errors (e.g. Twilio auth failures) but log for debugging
+                logger.warning(f"send_booking_notifications failed for Booking {self.id}: {e}")
+
+            
+            
+        
 
 
 
