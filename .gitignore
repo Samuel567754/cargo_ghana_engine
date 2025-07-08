@@ -1,0 +1,44 @@
+# Python bytecode files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Django stuff:
+*.log
+# *.sqlite3
+# db.sqlite3
+# media/
+# static/
+
+# Virtual environment
+venv/
+env/
+
+# IDE files
+.idea/
+.vscode/
+
+# OS-specific files
+.DS_Store  # macOS
+Thumbs.db  # Windows
+
+# Node.js files:
+# node_modules/
+npm-debug.log
+yarn-error.log
+dist/
+build/
+*.tgz
+
+# Docker
+docker-compose.override.yml
+# Dockerfile
+
+# Local environment files
+.env
+.env.local
+
+# Coverage reports
+*.coverage
+.qodo
