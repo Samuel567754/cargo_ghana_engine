@@ -4,6 +4,7 @@ from django.db import models
 from django.conf import settings
 from django.utils.crypto import get_random_string
 import logging
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -104,10 +105,85 @@ class Booking(models.Model):
                 logger.warning(f"send_booking_notifications failed for Booking {self.id}: {e}")
 
             
-            
-        
 
 
+
+class ContainerBatch(models.Model):
+    STATUS_CHOICES = (
+        ('open', 'Open'),
+        ('ready', 'Ready to Ship'),
+        ('dispatched', 'Dispatched'),
+    )
+
+    target_volume = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Target volume (m³) for this container batch"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='open'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Batch #{self.id} ({self.get_status_display()})"
+
+    @property
+    def current_volume(self):
+        """
+        Sum of all booking volumes (box_type.volume_m3 * booking.quantity)
+        for bookings created while this batch is 'open'.
+        """
+        from .models import Booking  # avoid circular imports
+        bookings = Booking.objects.filter(
+            created_at__gte=self.created_at,
+            status__in=['pending', 'confirmed']
+        )
+        total = Decimal('0')
+        for b in bookings:
+            total += Decimal(b.box_type.volume_m3) * b.quantity
+        return total
+
+    @property
+    def percent_full(self):
+        if not self.target_volume:
+            return 0
+        return float((self.current_volume / self.target_volume) * 100)
+
+
+
+
+class NotificationLog(models.Model):
+    CHANNEL_CHOICES = (
+        ('email', 'Email'),
+        ('whatsapp', 'WhatsApp'),
+    )
+
+    booking = models.ForeignKey(
+        'Booking',
+        on_delete=models.CASCADE,
+        related_name='notifications'
+    )
+    channel = models.CharField(max_length=20, choices=CHANNEL_CHOICES)
+    recipient = models.CharField(max_length=255)
+    payload = models.TextField(help_text="Raw message body or JSON payload")
+    status = models.CharField(
+        max_length=20,
+        choices=(('success', 'Success'), ('failed', 'Failed'))
+    )
+    error_message = models.TextField(blank=True, null=True)
+    sent_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-sent_at']
+
+    def __str__(self):
+        return f"{self.get_channel_display()} to {self.recipient} for {self.booking.reference_code}"
 
 
 

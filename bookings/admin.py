@@ -1,5 +1,23 @@
 from django.contrib import admin
-from .models import BoxType, Booking
+from .models import BoxType, Booking, NotificationLog, ContainerBatch
+
+
+
+@admin.register(ContainerBatch)
+class ContainerBatchAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'target_volume',
+        'status',
+        'current_volume',
+        'percent_full',
+        'created_at',
+    )
+    list_filter = ('status',)
+    readonly_fields = ('current_volume', 'percent_full', 'created_at')
+    ordering = ('-created_at',)
+    search_fields = ('id',)
+
 
 @admin.register(BoxType)
 class BoxTypeAdmin(admin.ModelAdmin):
@@ -17,3 +35,11 @@ class BookingAdmin(admin.ModelAdmin):
     )
     readonly_fields = ('reference_code', 'cost', 'created_at')
     search_fields = ('reference_code', 'user__username', 'pickup_address')
+
+
+
+@admin.register(NotificationLog)
+class NotificationLogAdmin(admin.ModelAdmin):
+    list_display = ('booking', 'channel', 'recipient', 'status', 'sent_at')
+    list_filter = ('channel', 'status')
+    search_fields = ('booking__reference_code', 'recipient')
