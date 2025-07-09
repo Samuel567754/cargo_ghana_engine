@@ -1,7 +1,9 @@
 import pytest
+from decimal import Decimal
 from rest_framework.test import APIClient
 from django.urls import reverse
-from bookings.models import Booking, BoxType
+
+from bookings.models import BoxType, Booking
 from tracking.models import TrackingRecord
 
 pytestmark = pytest.mark.django_db
@@ -15,18 +17,20 @@ def box_type():
     return BoxType.objects.create(
         name='Medium',
         length_cm=20, width_cm=20, height_cm=20,
-        price_per_kg=3.00, price_per_box=25.00
+        price_per_kg=Decimal('3.00'),
+        price_per_box=Decimal('25.00'),
     )
 
 @pytest.fixture
 def booking(box_type):
+    # create with quantity instead of weight
     return Booking.objects.create(
         box_type=box_type,
-        weight_kg=2.0,
+        quantity=2,
         pickup_address='123 A St',
         pickup_date='2025-08-01',
         pickup_slot='Afternoon',
-        cost=box_type.price_per_box + 2.0 * box_type.price_per_kg
+        user=None,
     )
 
 @pytest.fixture

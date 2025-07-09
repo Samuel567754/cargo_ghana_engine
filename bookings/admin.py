@@ -16,14 +16,30 @@ class ContainerBatchAdmin(ModelAdmin):
         'id',
         'target_volume',
         'status',
-        'current_volume',
-        'percent_full',
+        'current_volume_display',
+        'percent_full_display',
         'created_at',
     )
+    readonly_fields = (
+        'target_volume',
+        'status',
+        'created_at',
+        'current_volume_display',
+        'percent_full_display',
+    )
     list_filter = ('status',)
-    readonly_fields = ('current_volume', 'percent_full', 'created_at')
-    ordering = ('-created_at',)
-    search_fields = ('id',)
+
+    def current_volume_display(self, obj):
+        # call the model’s property
+        return obj.current_volume
+    current_volume_display.short_description = 'Current Volume (m³)'
+
+    def percent_full_display(self, obj):
+        # call the model’s property
+        return f"{obj.percent_full:.2f}%"
+    percent_full_display.short_description = 'Percent Full'
+
+
 
 
 @admin.register(BoxType)
@@ -37,11 +53,12 @@ class BoxTypeAdmin(ModelAdmin):
 class BookingAdmin(ModelAdmin):
     list_display = (
         'reference_code', 'user', 'box_type',
-        'weight_kg', 'pickup_date', 'pickup_slot',
+        'quantity', 'pickup_date', 'pickup_slot',
         'cost', 'created_at'
     )
     readonly_fields = ('reference_code', 'cost', 'created_at')
     search_fields = ('reference_code', 'user__username', 'pickup_address')
+
 
 
 @admin.register(NotificationLog)
@@ -80,3 +97,12 @@ def dashboard_callback(request, context):
     ).count()
 
     return context
+
+
+
+
+
+
+
+
+

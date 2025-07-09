@@ -1,7 +1,9 @@
 import pytest
+from decimal import Decimal
 from django.contrib.auth import get_user_model
-from rest_framework.test import APIClient
 from django.urls import reverse
+from rest_framework.test import APIClient
+
 from bookings.models import BoxType, Booking
 
 User = get_user_model()
@@ -25,7 +27,8 @@ def box_type():
     return BoxType.objects.create(
         name='Small',
         length_cm=10, width_cm=10, height_cm=10,
-        price_per_kg=2.50, price_per_box=15.00
+        price_per_kg=Decimal('2.50'),
+        price_per_box=Decimal('15.00'),
     )
 
 def test_list_box_types(api_client, box_type):
@@ -39,7 +42,7 @@ def test_create_booking(auth_client, box_type):
     url = reverse('bookings-list')
     payload = {
         'box_type': box_type.id,
-        'weight_kg': '5.00',
+        'quantity': 5,
         'pickup_address': '123 Main St',
         'pickup_date': '2025-08-01',
         'pickup_slot': 'Morning'
@@ -47,6 +50,14 @@ def test_create_booking(auth_client, box_type):
     resp = auth_client.post(url, payload, format='json')
     assert resp.status_code == 201, resp.content
     body = resp.json()
-    expected = 15.00 + 5.00 * 2.50
-    assert abs(float(body['cost']) - expected) < 0.01
+
+    volume = (Decimal(box_type.length_cm)/100
+              * Decimal(box_type.width_cm)/100
+              * Decimal(box_type.height_cm)/100)
+    expected_cost = (volume * 5 * Decimal('453.66')).quantize(Decimal('0.01'))
+
+    assert Decimal(body['cost']) == expected_cost
     assert 'id' in body
+
+    booking = Booking.objects.get(id=body['id'])
+    assert booking.cost == expected_cost
