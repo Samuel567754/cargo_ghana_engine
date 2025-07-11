@@ -4,6 +4,8 @@ from decimal import Decimal
 from django.db import models
 from django.conf import settings
 from django.utils.crypto import get_random_string
+from datetime import datetime, time, timedelta
+from django.db.models import F, Sum, ExpressionWrapper, DecimalField
 
 logger = logging.getLogger(__name__)
 
@@ -67,29 +69,47 @@ class Booking(models.Model):
 
     def save(self, *args, **kwargs):
         is_new = self._state.adding
-
-        if not self.reference_code:
-            self.reference_code = get_random_string(12).upper()
-
-        total_volume = self.box_type.volume_m3 * self.quantity
-        self.cost     = (total_volume * Decimal("453.66")).quantize(Decimal("0.01"))
-
         super().save(*args, **kwargs)
 
-        # enqueue exactly once on creation
+        # Log capacity after save
+        if is_new or 'quantity' in kwargs.get('update_fields', []):
+            current_batch = ContainerBatch.objects.filter(status='open').first()
+            if current_batch:
+                ContainerCapacity.log_capacity(current_batch)
+
+        # Existing notification logic
         if is_new:
-            from .models import send_booking_notifications  # proxy below
+            from .models import send_booking_notifications
             send_booking_notifications.delay(str(self.id))
 
     @classmethod
     def total_booked_volume(cls) -> Decimal:
-        total = Decimal('0')
-        for booking in cls.objects.all():
-            total += booking.box_type.volume_m3 * booking.quantity
-        return total
+        # Use database aggregation instead of Python loop
+        result = cls.objects.annotate(
+            item_volume=ExpressionWrapper(
+                F('box_type__length_cm') * F('box_type__width_cm') * 
+                F('box_type__height_cm') * F('quantity') / 1000000,
+                output_field=DecimalField()
+            )
+        ).aggregate(total=Sum('item_volume'))
+        return result['total'] or Decimal('0')
+
+    @property
+    def volume_m3(self) -> Decimal:
+        return self.box_type.volume_m3 * self.quantity
 
 
 class ContainerBatch(models.Model):
+    # Add historical tracking
+    volume_history = models.JSONField(default=list, help_text="Historical volume data")
+    
+    def update_volume_history(self):
+        current_volume = Booking.total_booked_volume()
+        self.volume_history.append({
+            'timestamp': timezone.now().isoformat(),
+            'volume': str(current_volume)
+        })
+        self.save(update_fields=['volume_history'])
     STATUS_CHOICES = (
         ('open', 'Open'),
         ('ready', 'Ready to Ship'),
@@ -136,3 +156,52 @@ class _SendBookingNotificationsProxy:
         return send_booking_notifications.delay(booking_id)
 
 send_booking_notifications = _SendBookingNotificationsProxy()
+
+
+# Add this import at the top with other imports
+from typing import Dict
+
+CONTAINER_MAX_VOLUME = 65  # Maximum volume in m³ per container
+MAX_BOXES_PER_TYPE = 100   # Maximum number of boxes per type per booking
+
+# Volume-based discount tiers (volume in m³: discount percentage)
+VOLUME_DISCOUNTS: Dict[Decimal, Decimal] = {
+    Decimal('10.00'): Decimal('0.05'),  # 5% off for 10m³+
+    Decimal('20.00'): Decimal('0.10'),  # 10% off for 20m³+
+    Decimal('30.00'): Decimal('0.15'),  # 15% off for 30m³+
+}
+
+
+# Add after other constants
+PICKUP_SLOTS = [
+    ('morning', '9:00 AM - 12:00 PM'),
+    ('afternoon', '12:00 PM - 3:00 PM'),
+    ('evening', '3:00 PM - 6:00 PM')
+]
+
+MIN_PICKUP_DAYS = 1  # Minimum days in advance for pickup
+MAX_PICKUP_DAYS = 14  # Maximum days in advance for pickup
+
+
+class ContainerCapacity(models.Model):
+    batch = models.ForeignKey(ContainerBatch, on_delete=models.CASCADE, related_name='capacity_logs')
+    total_volume = models.DecimalField(max_digits=10, decimal_places=2)
+    remaining_volume = models.DecimalField(max_digits=10, decimal_places=2)
+    booking_count = models.PositiveIntegerField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    @classmethod
+    def log_capacity(cls, batch: ContainerBatch):
+        total_volume = Booking.total_booked_volume()
+        remaining = batch.target_volume - total_volume
+        booking_count = Booking.objects.count()
+        
+        return cls.objects.create(
+            batch=batch,
+            total_volume=total_volume.quantize(Decimal('0.01')),
+            remaining_volume=remaining.quantize(Decimal('0.01')),
+            booking_count=booking_count
+        )

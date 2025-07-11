@@ -20,4 +20,5 @@ urlpatterns = [
     path('api/referrals/', include('referrals.urls')),
     path('api/agents/', include('agents.urls')),
     path('api/core/', include('core.urls')),  # for API versioning and future expansion
+    path('api/notifications/', include('notification_templates.urls')),
 ]

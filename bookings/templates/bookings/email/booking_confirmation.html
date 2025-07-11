@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #f8f9fa; padding: 20px; text-align: center; }
+        .content { padding: 20px; }
+        .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+        .button { 
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Booking Confirmed!</h1>
+            <p>Reference Code: {{ booking.reference_code }}</p>
+        </div>
+        
+        <div class="content">
+            <h2>Booking Details</h2>
+            <p><strong>Box Type:</strong> {{ booking.box_type.name }}</p>
+            <p><strong>Quantity:</strong> {{ booking.quantity }}</p>
+            <p><strong>Total Volume:</strong> {{ booking.box_type.volume_m3|multiply:booking.quantity|floatformat:2 }}m³</p>
+            
+            <h2>Pickup Information</h2>
+            <p><strong>Date:</strong> {{ booking.pickup_date }}</p>
+            <p><strong>Time Slot:</strong> {{ pickup_slot_display }}</p>
+            <p><strong>Address:</strong> {{ booking.pickup_address }}</p>
+            
+            <h2>Cost</h2>
+            <p><strong>Total Amount:</strong> GHS {{ booking.cost }}</p>
+            
+            <p style="text-align: center; margin-top: 30px;">
+                <a href="{{ tracking_url }}" class="button">Track Your Booking</a>
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>Thank you for choosing CargoGhana!</p>
+            <p>If you have any questions, please contact our support team.</p>
+        </div>
+    </div>
+</body>
+</html>

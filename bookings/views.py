@@ -5,6 +5,10 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
+from django.http import FileResponse
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from .pdf_generator import generate_box_cheatsheet
 
 from .models import BoxType, Booking, send_booking_notifications
 from .serializers import (
@@ -24,6 +28,15 @@ class BoxTypeViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class BookingViewSet(viewsets.ModelViewSet):
+    def get_queryset(self):
+        return Booking.objects.select_related(
+            'user',
+            'box_type',
+            'referral'
+        ).prefetch_related(
+            'tracking',
+            'notifications'
+        )
     queryset = Booking.objects.all().order_by('-created_at')
 
     def get_serializer_class(self):
@@ -92,3 +105,48 @@ class BookingTrackingView(generics.RetrieveAPIView):
     serializer_class = BookingTrackingSerializer
     lookup_field     = 'reference_code'
     permission_classes = [AllowAny]
+
+
+class ContainerCapacityView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        current_batch = ContainerBatch.objects.filter(status='open').first()
+        if not current_batch:
+            return Response({
+                'error': 'No open container batch found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        latest_capacity = ContainerCapacity.objects.filter(batch=current_batch).first()
+        if not latest_capacity:
+            latest_capacity = ContainerCapacity.log_capacity(current_batch)
+
+        serializer = ContainerCapacitySerializer(latest_capacity)
+        return Response(serializer.data)
+
+
+class CapacityHistoryView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        days = int(request.GET.get('days', 7))
+        start_date = timezone.now() - timedelta(days=days)
+        
+        capacity_logs = ContainerCapacity.objects.filter(
+            timestamp__gte=start_date
+        ).order_by('timestamp')
+
+        serializer = ContainerCapacitySerializer(capacity_logs, many=True)
+        return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def download_box_cheatsheet(request):
+    pdf_buffer = generate_box_cheatsheet()
+    return FileResponse(
+        pdf_buffer,
+        as_attachment=True,
+        filename='box_volume_cheatsheet.pdf',
+        content_type='application/pdf'
+    )

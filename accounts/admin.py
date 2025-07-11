@@ -1,7 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import User
-from unfold.admin import ModelAdmin
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
@@ -9,3 +8,4 @@ class CustomUserAdmin(UserAdmin):
         (None, {'fields': ('is_agent',)}),
     )
     list_display = UserAdmin.list_display + ('is_agent',)
+from unfold.admin import ModelAdmin

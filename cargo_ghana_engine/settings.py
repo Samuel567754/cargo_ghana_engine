@@ -1,11 +1,28 @@
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
 from datetime import timedelta
 from celery.schedules import crontab
-
-
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'debug.log',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
 
 # ─── Load environment variables ────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -18,12 +35,9 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost').split(',')
 
 # ─── Installed Apps ─────────────────────────────────────────
 INSTALLED_APPS = [  
-    "unfold",                   # required
-    "unfold.contrib.filters",   # optional — adds better filter widgets
-    "unfold.contrib.forms",     # optional — custom form elements
-    "unfold.contrib.inlines",   # optional — enhanced inlines
-    # Django core
-    'django.contrib.admin',
+    'jazzmin',
+    'import_export',  # Add this line
+    'django.contrib.admin',  # Keep this
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -40,10 +54,111 @@ INSTALLED_APPS = [
     'tracking',
     'referrals',
     'agents',
-    'core',  # for API versioning and future expansion
+    'core',
     'rest_framework_simplejwt.token_blacklist',
     'bookings.apps.BookingsConfig',
+    'notification_templates',
 ]
+
+# Add Jazzmin settings after INSTALLED_APPS
+JAZZMIN_SETTINGS = {
+    # title of the window (Will default to current_admin_site.site_title if absent or None)
+    "site_title": "CargoGhana Admin",
+    "site_header": "CargoGhana",
+    "site_brand": "CargoGhana Admin",
+    "welcome_sign": "Welcome to CargoGhana Logistics Platform",
+    "copyright": "CargoGhana Ltd",
+    
+    # Top Menu Items
+    "topmenu_links": [
+        {"name": "Home", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "Support", "url": "https://cargoghana.com/support", "new_window": True},
+    ],
+    
+    # Custom icons for side menu apps/models
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        "bookings.booking": "fas fa-box",
+        "bookings.containerbatch": "fas fa-shipping-fast",
+        "bookings.containercapacity": "fas fa-warehouse",
+        "bookings.notificationlog": "fas fa-bell",
+        "agents.agentapplication": "fas fa-user-tie",
+        "referrals.referral": "fas fa-share-alt",
+        "tracking": "fas fa-map-marker-alt",
+        "accounts.user": "fas fa-user-circle",
+        "notification_templates": "fas fa-envelope",
+    },
+    
+    # Custom admin interface settings
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "hide_apps": [],
+    "hide_models": [],
+    
+    # UI Customizer
+    "custom_css": None,
+    "custom_js": None,
+    "use_google_fonts_cdn": True,
+    "show_ui_builder": True,
+    
+    # Related Modal
+    "related_modal_active": True,
+    
+    # Custom menu ordering and grouping
+    "order_with_respect_to": [
+        "auth",
+        "bookings",
+        "agents",
+        "referrals",
+        "tracking",
+        "accounts",
+        "notification_templates",
+    ],
+    
+    # Group apps in custom menus
+    "custom_links": {
+        "bookings": [{
+            "name": "Container Statistics", 
+            "url": "admin:bookings_containerbatch_changelist", 
+            "icon": "fas fa-chart-bar"
+        }],
+    },
+}
+
+# Custom admin title
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": "navbar-success",
+    "accent": "accent-primary",
+    "navbar": "navbar-dark",
+    "no_navbar_border": False,
+    "navbar_fixed": False,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": False,
+    "sidebar": "sidebar-dark-primary",
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": False,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+    "theme": "default",
+    "dark_mode_theme": None,
+    "button_classes": {
+        "primary": "btn-primary",
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success"
+    }
+}
 
 
 CELERY_BEAT_SCHEDULE = {
@@ -65,9 +180,6 @@ CELERY_BEAT_SCHEDULE = {
 CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://redis:6379/0')
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
-CELERY_TASK_ALWAYS_EAGER = True
-CELERY_TASK_EAGER_PROPAGATES = True
-
 
 # ─── Middleware ────────────────────────────────────────────
 MIDDLEWARE = [
@@ -124,6 +236,17 @@ DATABASES = {
 }
 
 
+# Add these settings for testing
+if 'pytest' in sys.modules:
+    DATABASES['default']['ATOMIC_REQUESTS'] = False
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_TASK_EAGER_PROPAGATES = True
+
+# Add this near the top of settings.py
+if 'pytest' in sys.argv[0]:
+    CELERY_BROKER_URL = 'memory://'
+    CELERY_RESULT_BACKEND = 'memory://'
+
 # settings.py
 DEFAULT_FROM_EMAIL = "no-reply@cargoghana.com"
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
@@ -172,7 +295,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
-        # (or JWTAuthentication if you’re using Simple JWT)
+        # (or JWTAuthentication if you're using Simple JWT)
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
 
@@ -181,15 +304,15 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
 
-    # — Throttle classes (separate!) —
+    # — Throttle classes —
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/day',
-        'user': '1000/day',
-    },
+        'user': '1000/day'
+    }
 }
 
 
@@ -229,17 +352,20 @@ SIMPLE_JWT = {
 }
 
 
-UNFOLD = {
-    "SITE_TITLE": "CargoGhana Admin",
-    "SITE_HEADER": "CargoGhana Dashboard",
-    "DARK_MODE": True,
-    "SIDEBAR": {
-        "show_search": True,
-        "show_all_applications": False,
-    },
-    # Add dashboard callback once ready:
-    # "DASHBOARD_CALLBACK": "bookings.admin.dashboard_callback",
-     # ← point Unfold at our custom dashboard function
-    
-    "DASHBOARD_CALLBACK": "bookings.admin.dashboard_callback",
+# Add this with your other settings
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+
+
+# Google Analytics Configuration
+# Meta Pixel Configuration
+META_PIXEL_ID = os.getenv('META_PIXEL_ID')  # e.g. '123456789'
+# Google Analytics Configuration
+GA_MEASUREMENT_ID = os.getenv('GA_MEASUREMENT_ID')  # e.g. 'G-XXXXXXXXXX'
+
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.getenv('REDIS_URL', 'redis://redis:6379/1'),
+    }
 }

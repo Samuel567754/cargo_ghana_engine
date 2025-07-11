@@ -1,32 +1,96 @@
-{# templates/admin/dashboard.html #}
-{% block dashboard %}
-  <div class="grid grid-cols-3 gap-4 mb-6">
-    … your three cards …
+{% extends 'unfold/base.html' %}
+{% load i18n %}
+
+{% block content %}
+  <div class="grid grid-cols-5 gap-4 mb-6">  <!-- Changed from 4 to 5 columns -->
+    <div class="p-4 bg-white rounded-lg shadow">
+      <h3 class="text-lg font-semibold">Daily Bookings</h3>
+      <p class="text-3xl">{{ daily_count }}</p>
+    </div>
+    <div class="p-4 bg-white rounded-lg shadow">
+      <h3 class="text-lg font-semibold">Daily Revenue</h3>
+      <p class="text-3xl">₵{{ daily_revenue }}</p>
+    </div>
+    <div class="p-4 bg-white rounded-lg shadow">
+      <h3 class="text-lg font-semibold">Daily Volume</h3>
+      <p class="text-3xl">{{ daily_volume }}m³</p>
+    </div>
+    <div class="p-4 bg-white rounded-lg shadow">
+      <h3 class="text-lg font-semibold">Monthly Bookings</h3>
+      <p class="text-3xl">{{ monthly_count }}</p>
+    </div>
+    <div class="p-4 bg-white rounded-lg shadow">
+      <h3 class="text-lg font-semibold">Monthly Revenue</h3>
+      <p class="text-3xl">₵{{ monthly_revenue }}</p>
+    </div>
   </div>
 
-  <h2 class="text-2xl font-semibold mb-4">Top 5 Customers (Today)</h2>
-  <div class="overflow-auto mb-6">
-    <table class="min-w-full divide-y divide-gray-200">
-      <thead>
-        <tr>
-          <th class="px-4 py-2">Customer</th>
-          <th class="px-4 py-2">Bookings</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-100">
-        {% for cust in customer_stats %}
-        <tr>
-          <td class="px-4 py-2">{{ cust.user__username }}</td>
-          <td class="px-4 py-2">{{ cust.bookings }}</td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="2" class="px-4 py-2 text-center">No bookings today</td>
-        </tr>
+  <div class="grid grid-cols-2 gap-4 mb-6">
+    <!-- Top Customers -->
+    <div class="bg-white rounded-lg shadow p-4">
+      <h2 class="text-xl font-semibold mb-4">Top Customers (Today)</h2>
+      <table class="min-w-full">
+        <thead>
+          <tr>
+            <th class="text-left">Customer</th>
+            <th class="text-right">Bookings</th>
+            <th class="text-right">Revenue</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cust in customer_stats %}
+          <tr>
+            <td>{{ cust.user__username }}</td>
+            <td class="text-right">{{ cust.bookings }}</td>
+            <td class="text-right">₵{{ cust.revenue }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Agent Performance -->
+    <div class="bg-white rounded-lg shadow p-4">
+      <h2 class="text-xl font-semibold mb-4">Top Agents (Today)</h2>
+      <table class="min-w-full">
+        <thead>
+          <tr>
+            <th class="text-left">Agent</th>
+            <th class="text-right">Bookings</th>
+            <th class="text-right">Revenue</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for agent in agent_performance %}
+          <tr>
+            <td>{{ agent.user__username }}</td>
+            <td class="text-right">{{ agent.bookings }}</td>
+            <td class="text-right">₵{{ agent.revenue }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Status Distribution -->
+  <!-- New Applications -->
+  <div class="bg-white rounded-lg shadow p-4 mb-6">
+    <h2 class="text-xl font-semibold mb-4">New Agent Applications Today</h2>
+    <div class="text-center">
+      <div class="text-4xl font-bold">{{ new_applications }}</div>
+      <div class="text-gray-600">Applications</div>
+    </div>
+  </div>
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+      <h2 class="text-xl font-semibold mb-4">Booking Status Distribution</h2>
+      <div class="grid grid-cols-5 gap-4">
+        {% for status in status_distribution %}
+        <div class="text-center">
+          <div class="text-2xl font-bold">{{ status.count }}</div>
+          <div class="text-gray-600">{{ status.status }}</div>
+        </div>
         {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  {{ block.super }}
+      </div>
+    </div>
 {% endblock %}

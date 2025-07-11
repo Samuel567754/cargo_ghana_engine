@@ -1,0 +1,23 @@
+Booking Confirmed!
+Reference Code: {{ booking.reference_code }}
+
+Booking Details
+---------------
+Box Type: {{ booking.box_type.name }}
+Quantity: {{ booking.quantity }}
+Total Volume: {{ booking.box_type.volume_m3|multiply:booking.quantity|floatformat:2 }}m³
+
+Pickup Information
+------------------
+Date: {{ booking.pickup_date }}
+Time Slot: {{ pickup_slot_display }}
+Address: {{ booking.pickup_address }}
+
+Cost
+----
+Total Amount: GHS {{ booking.cost }}
+
+Track your booking at: {{ tracking_url }}
+
+Thank you for choosing CargoGhana!
+If you have any questions, please contact our support team.
